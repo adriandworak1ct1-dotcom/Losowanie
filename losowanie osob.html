@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Losowanie drużyn</title>
+
+<style>
+body {
+  font-family: Arial;
+  padding: 20px;
+  background: #f4f4f4;
+}
+
+h1 { font-size: 32px; }
+p { font-size: 18px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  max-width: 400px;
+  margin-bottom: 20px;
+}
+
+input {
+  padding: 10px;
+  font-size: 18px;
+  width: 100%;
+}
+
+button {
+  padding: 12px 25px;
+  font-size: 20px;
+  cursor: pointer;
+  margin: 5px;
+}
+
+/* TRYB WYNIKÓW */
+body.results-mode .grid,
+body.results-mode h1,
+body.results-mode p {
+  display: none;
+}
+
+/* ALE radio + przyciski zostają */
+body.results-mode .controls {
+  display: block;
+}
+
+body.results-mode table {
+  width: 100%;
+  max-width: 100%;
+  font-size: 30px;
+}
+
+/* TABELA */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 20px;
+}
+
+th, td {
+  border: 2px solid #333;
+  padding: 16px;
+  text-align: center;
+  font-weight: bold;
+}
+
+th {
+  font-size: 26px;
+  color: white;
+}
+
+.teamA { background:#1e90ff; }
+.teamB { background:#e74c3c; }
+
+.hidden { display:none; }
+
+/* LEPSZY KOLOR KOBIET (kontrastowy) */
+.woman {
+  color: #ffd700; /* złoty – dobrze widać na niebieskim i czerwonym */
+}
+</style>
+</head>
+
+<body>
+
+<h1>Generator drużyn</h1>
+<p>Wpisz graczy i wylosuj drużyny.</p>
+
+<div class="controls">
+  <label><input type="radio" name="mode" value="random" checked> Czysty los</label>
+  <label><input type="radio" name="mode" value="women"> Wyrównanie kobiet</label>
+
+  <br><br>
+
+  <button onclick="shuffleTeams()">Losuj drużyny</button>
+  <button onclick="reshuffle()">Losuj ponownie</button>
+</div>
+
+<div class="grid" id="inputs"></div>
+
+<table id="results" class="hidden">
+<tr>
+<th class="teamA">Drużyna A</th>
+<th class="teamB">Drużyna B</th>
+</tr>
+<tbody id="tableBody"></tbody>
+</table>
+
+<datalist id="playersList">
+<option value="Adrian">
+<option value="Michał">
+<option value="Jakub">
+<option value="Ewelina">
+<option value="Megi">
+<option value="Małgosia">
+<option value="Jacek">
+<option value="Marcin">
+<option value="Łukasz">
+<option value="Berat">
+<option value="Dawid">
+<option value="Bartosz">
+<option value="Maciej">
+<option value="Krzysiek">
+<option value="Weronika">
+<option value="Agata">
+<option value="Bartek">
+<option value="Agnieszka">
+<option value="Klaudiusz">
+<option value="Dominik">
+<option value="Wojtek">
+<option value="Natalia">
+<option value="Wojciech">
+<option value="Mateusz">
+</datalist>
+
+<script>
+
+const inputsContainer = document.getElementById("inputs");
+const tableBody = document.getElementById("tableBody");
+const resultsTable = document.getElementById("results");
+
+let lastPeople = [];
+
+/* MAPA PŁCI */
+const genderMap = {
+  Adrian:"m", Michał:"m", Jakub:"m", Ewelina:"k",
+  Megi:"k", Małgosia:"k", Jacek:"m", Marcin:"m",
+  Łukasz:"m", Berat:"m", Dawid:"m", Bartosz:"m",
+  Maciej:"m", Krzysiek:"m", Weronika:"k", Agata:"k",
+  Bartek:"m", Agnieszka:"k", Klaudiusz:"m", Dominik:"m",
+  Wojtek:"m", Natalia:"k", Wojciech:"m", Mateusz:"m"
+};
+
+/* INPUTY */
+for (let i = 0; i < 12; i++) {
+  const input = document.createElement("input");
+  input.placeholder = "Osoba " + (i + 1);
+  input.id = "p" + i;
+  input.setAttribute("list", "playersList");
+
+  const saved = localStorage.getItem("p" + i);
+  if (saved) input.value = saved;
+
+  input.addEventListener("input", () => {
+    localStorage.setItem("p" + i, input.value);
+  });
+
+  inputsContainer.appendChild(input);
+}
+
+/* SHUFFLE */
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
+
+/* RENDER */
+function renderPlayer(name){
+  if(!name) return "";
+  const isWoman = genderMap[name] === "k";
+  return `<span class="${isWoman ? 'woman' : ''}">${name}</span>`;
+}
+
+/* MAIN */
+function shuffleTeams(savedList = null){
+
+  let people = savedList ? [...savedList] : [];
+
+  if(!savedList){
+    for(let i=0;i<12;i++){
+      let v=document.getElementById("p"+i).value.trim();
+      if(v) people.push(v);
+    }
+  }
+
+  if(people.length < 2){
+    alert("Za mało osób");
+    return;
+  }
+
+  lastPeople = [...people];
+
+  const mode=document.querySelector('input[name="mode"]:checked').value;
+
+  let women=[], men=[];
+
+  people.forEach(p=>{
+    if(genderMap[p]==="k") women.push(p);
+    else men.push(p);
+  });
+
+  shuffle(people);
+  shuffle(women);
+  shuffle(men);
+
+  let A=[], B=[];
+
+  if(mode==="random"){
+    let mid=Math.ceil(people.length/2);
+    A=people.slice(0,mid);
+    B=people.slice(mid);
+  }
+
+  if(mode==="women"){
+    let mid=Math.ceil(people.length/2);
+
+    let wA=women.slice(0,Math.ceil(women.length/2));
+    let wB=women.slice(Math.ceil(women.length/2));
+
+    let menCopy=[...men];
+    shuffle(menCopy);
+
+    A=[...wA];
+    B=[...wB];
+
+    menCopy.forEach(p=>{
+      if(A.length<mid) A.push(p);
+      else B.push(p);
+    });
+  }
+
+  document.body.classList.add("results-mode");
+  resultsTable.classList.remove("hidden");
+
+  tableBody.innerHTML="";
+
+  let max=Math.max(A.length,B.length);
+
+  for(let i=0;i<max;i++){
+    tableBody.innerHTML+=`
+      <tr>
+        <td class="teamA">${renderPlayer(A[i])}</td>
+        <td class="teamB">${renderPlayer(B[i])}</td>
+      </tr>
+    `;
+  }
+}
+
+/* RESHUFFLE */
+function reshuffle(){
+  if(lastPeople.length < 2){
+    alert("Najpierw wylosuj drużyny");
+    return;
+  }
+  shuffleTeams(lastPeople);
+}
+
+</script>
+
+</body>
+</html>
